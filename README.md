@@ -41,11 +41,11 @@ An over engineered remmina profiles parser written in Rust because why not, it s
 ## Usage
 
 ```sh
-cargo run -- --remmina-dir <remmina_dir> --tabby-dir <tabby_dir> [--protocol SSH,RDP,VNC] [--remmina-check] [--execute]
+cargo run -- --remmina-dir <remmina_dir> --tabby-dir <tabby_dir> [--protocol SSH,RDP,VNC] [--remmina-check] [--execute] [--yes]
 ```
 
 ```sh
-remmina-to-tabby --remmina-dir <remmina_dir> --tabby-dir <tabby_dir> [--protocol SSH,RDP,VNC] [--remmina-check] [--execute]
+remmina-to-tabby --remmina-dir <remmina_dir> --tabby-dir <tabby_dir> [--protocol SSH,RDP,VNC] [--remmina-check] [--execute] [--yes]
 ```
 
 - `--remmina-dir`     : Path to your Remmina profiles directory.
