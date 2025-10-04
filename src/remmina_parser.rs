@@ -1,0 +1,248 @@
+use std::fs;
+use std::io::{BufRead, BufReader};
+// use crate::remmina_types::{RemminaProfile,RemminaFiles};
+use crate::remmina_types::{RemminaFiles, RemminaProfile, SshAuthMethod};
+use crate::protocols_types::ALLOWED_PROTOCOLS_EXPORT;
+
+#[allow(dead_code)]
+/// Methods for RemminaFiles
+impl RemminaFiles {
+    /// Find all .remmina files in the given directory
+    /// 
+    /// # Arguments
+    /// 
+    /// * `remmina_dir` - A string slice that holds the path to the Remmina directory
+    /// # Returns
+    /// 
+    /// * `RemminaFiles` - A struct containing a vector of PathBufs to the found .remmina files
+    pub fn find(remmina_dir: &str) -> Self {
+        let mut files = Vec::new();
+        let entries = match fs::read_dir(remmina_dir) {
+            Ok(e) => e,
+            Err(_) => return RemminaFiles { files },
+        };
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.is_file() {
+                    if let Some(ext) = path.extension() {
+                        if ext == "remmina" {
+                            files.push(path);
+                        }
+                    }
+                }
+            }
+        }
+        RemminaFiles { files }
+    }
+
+    /// Show all found .remmina files
+    pub fn show_files(&self) {
+        for path in &self.files {
+            println!("Found remmina file: {}", path.display());
+        }
+    }
+
+    /// Check if file contains a line starting with "protocol=" and show the value
+    /// 
+    /// # Behavior
+    /// * If protocol is "SSH", print available
+    /// * If protocol is "RDP" or "VNC", print not implemented
+    /// * If protocol is unrecognized, print warning protocol not recognized
+    pub fn check_protocols(&self) {
+        for path in &self.files {
+            let mut found = false;
+            if let Ok(file) = fs::File::open(path) {
+                let reader = BufReader::new(file);
+                for line in reader.lines().flatten() {
+                    if let Some(rest) = line.strip_prefix("protocol=") {
+                        let protocol = rest.trim().to_uppercase();
+                        match protocol.as_str() {
+                            "SSH" => {
+                                println!("{}: protocol={} ✅ [available]", path.display(), protocol);
+                            }
+                            "RDP" | "VNC" => {
+                                println!("{}: protocol={} ❌ [not implemented]", path.display(), protocol);
+                            }
+                            _ => {
+                                println!("{}: protocol not recognized ({}) ⚠️", path.display(), protocol);
+                            }
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if !found {
+                println!("{}: protocol not found ❌", path.display());
+            }
+        }
+    }
+
+    /// Return a new RemminaFiles containing only files with any of the given protocols (case-insensitive)
+    /// 
+    /// # Arguments
+    /// * `protocols` - A slice of strings representing the protocols to filter by
+    /// # Returns
+    /// * `RemminaFiles` - A new RemminaFiles struct containing only the filtered files
+    /// # Behavior
+    /// * For each file, read lines and look for "protocol=" line
+    /// * If the protocol matches any in the given list (case-insensitive), include the file in the result
+    /// * If no match, exclude the file
+    /// * If file cannot be read, skip it
+    pub fn filter_by_protocols(&self, protocols: &[String]) -> RemminaFiles {
+        let mut filtered_files = Vec::new();
+
+        for path in &self.files {
+            if let Ok(file) = fs::File::open(path) {
+                let reader = BufReader::new(file);
+                for line in reader.lines().flatten() {
+                    if let Some(rest) = line.strip_prefix("protocol=") {
+                        let proto = rest.trim().to_uppercase();
+                        if protocols.iter().any(|p| p == &proto) {
+                            filtered_files.push(path.clone());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        RemminaFiles {
+            files: filtered_files,
+        }
+    }
+
+    /// Show files that use protocols in ALLOWED_PROTOCOLS_EXPORT
+    /// 
+    /// # Arguments
+    /// * `execute` - If true, perform the export (currently just prints a message
+    /// * If false, just print what would be done (dry-run)
+    /// # Behavior
+    /// * For each file, read lines and look for "protocol=" line
+    /// * If the protocol is in ALLOWED_PROTOCOLS_EXPORT, print the file path and protocol
+    /// * If `execute` is true, print "Exporting" message
+    /// * If `execute` is false, print "Dry-run" message
+    /// * If file cannot be read, skip it
+    pub fn export_profiles_base(&self, execute: bool) {
+        for path in &self.files {
+            if let Ok(file) = fs::File::open(path) {
+                let reader = BufReader::new(file);
+                for line in reader.lines().flatten() {
+                    if let Some(rest) = line.strip_prefix("protocol=") {
+                        let protocol = rest.trim().to_uppercase();
+                        if ALLOWED_PROTOCOLS_EXPORT.iter().any(|&p| p == protocol) {
+                            if execute {
+                                //  println!("🔹Exporting: {} (protocol={}) ✅", path.display(), protocol);
+                                println!(" ⬅️  Exporting: {} (protocol={}) ✅", path.display(), protocol);
+                                // println!(
+                                //     "🔹 Exporting Profile:\n  • Name:     {}\n  • Server:   {}\n  • Port:     {}\n  • User:     {}\n  • Group:    {}\n  • Protocol: {}\n  • Path:     {}\n",
+                                //     profile.name.as_deref().unwrap_or("<none>"),
+                                //     profile.server.as_deref().unwrap_or("<none>"),
+                                //     profile.port.as_deref().unwrap_or("<none>"),
+                                //     profile.user.as_deref().unwrap_or("<none>"),
+                                //     profile.group.as_deref().unwrap_or("<none>"),
+                                //     profile.protocol.as_deref().unwrap_or("<none>"),
+                                //     profile.path.display()
+                                // );
+                            } else {
+                                println!("Dry-run: {} (protocol={})", path.display(), protocol);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    /// Extract profiles with name, server, group, protocol from files using ALLOWED_PROTOCOLS_EXPORT
+    /// 
+    /// # Returns
+    /// * `Vec<RemminaProfile>` - A vector of RemminaProfile structs containing extracted profile information
+    /// # Behavior
+    /// * For each file, read lines and look for "name=", "server=", "group=", "protocol=" lines
+    /// * If the protocol is in ALLOWED_PROTOCOLS_EXPORT, create a RemminaProfile struct with the extracted information
+    /// * Add the RemminaProfile to the result vector
+    /// * If file cannot be read, skip it
+    pub fn export_profiles(&self) -> Vec<RemminaProfile> {
+        let mut profiles = Vec::new();
+
+        for path in &self.files {
+            let mut name = None;
+            let mut server = None;
+            let mut port = None;
+            let mut group = None;
+            let mut protocol = None;
+            let mut user = None;
+            let mut auth = None;
+
+            if let Ok(file) = fs::File::open(path) {
+                let reader = BufReader::new(file);
+                for line in reader.lines().flatten() {
+                    let line = line.trim();
+                    if let Some(rest) = line.strip_prefix("name=") {
+                        name = Some(rest.to_string());
+                    } else if let Some(rest) = line.strip_prefix("server=") {
+                        server = Some(rest.to_string());
+                    } else if let Some(rest) = line.strip_prefix("user=") {
+                        if !rest.is_empty() {
+                            user = Some(rest.to_string());
+                        }
+                    } else if let Some(rest) = line.strip_prefix("group=") {
+                        group = Some(rest.to_string());
+                    } else if let Some(rest) = line.strip_prefix("protocol=") {
+                        let proto = rest.to_uppercase();
+                        if ALLOWED_PROTOCOLS_EXPORT.iter().any(|&p| p == proto) {
+                            protocol = Some(proto);
+                        }
+                    } else if let Some(rest) = line.strip_prefix("ssh_auth=") {
+                        let auth_str = match rest {
+                            "0" => SshAuthMethod::Password.as_str(),
+                            "1" => SshAuthMethod::SSHIdentityFile.as_str(),
+                            "2" => SshAuthMethod::SSHAgent.as_str(),
+                            "3" => SshAuthMethod::PublicKey.as_str(),
+                            "4" => SshAuthMethod::KerberosGSSAPI.as_str(),
+                            "5" => SshAuthMethod::KerberosInteractive.as_str(),
+                            other => {
+                                // Allocate the string here so its lifetime is sufficient
+                                Box::leak(format!("unknown({})", other).into_boxed_str())
+                            },
+                        };
+                        auth = Some(auth_str.to_string());
+                    } else if let Some(rest) = line.strip_prefix("port=") {
+                        port = Some(rest.to_string());
+                    }
+                }
+            }
+
+            if protocol.is_some() {
+                let profile = RemminaProfile {
+                    name,
+                    server,
+                    port,
+                    group,
+                    protocol,
+                    user,
+                    path: path.clone(),
+                };
+
+                println!(" ⬅️  Exporting Profile:");
+                println!("    • Name:     {}", profile.name.as_deref().unwrap_or("<none>"));
+                println!("    • Server:   {}", profile.server.as_deref().unwrap_or("<none>"));
+                println!("    • Port:     {}", profile.port.as_deref().unwrap_or("<none>"));
+                println!("    • User:     {}", profile.user.as_deref().unwrap_or("<none>"));
+                println!("    • Group:    {}", profile.group.as_deref().unwrap_or("<none>"));
+                println!("    • Protocol: {}", profile.protocol.as_deref().unwrap_or("<none>"));
+                println!("    • Auth Method: {}", auth.as_deref().unwrap_or("<none>"));
+                println!("    • Path:     {}", profile.path.display());
+
+                profiles.push(profile);
+            }
+        }
+
+        profiles
+    }
+}
