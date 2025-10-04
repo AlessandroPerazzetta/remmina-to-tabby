@@ -53,7 +53,7 @@ remmina-to-tabby --remmina-dir <remmina_dir> --tabby-dir <tabby_dir> [--protocol
 - `--protocol`        : Comma-separated list of protocols to migrate (default: SSH).
 - `--remmina-check    : Check and show protocols found in Remmina files.
 - `--execute`         : Actually perform the import (otherwise, dry-run).
-- `--yes              : Proceed without confirmation
+- `--yes`             : Proceed without confirmation
 
 ---
 
