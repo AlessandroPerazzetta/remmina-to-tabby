@@ -250,6 +250,7 @@ impl TabbyConfig {
 
                 // Set default port based on protocol if port is None
                 let proto = ConnectionProtocols::from_str(profile.protocol.as_deref().unwrap_or(""));
+
                 let port = profile.port
                     .as_ref()
                     .and_then(|p| p.parse::<u16>().ok())
@@ -261,12 +262,30 @@ impl TabbyConfig {
                     println!(" └── Remmina profile port not set, using default for protocol [{:?}]: {}", proto.as_str(), get_default_port_for_protocol(&proto));
                 }
 
+                // Handle auth method for SSH protocol
+                let auth = profile.auth.as_deref().unwrap_or("password");
+                if proto == ConnectionProtocols::Ssh {
+                    match auth {
+                        "password" | "sshidentityfile" | "sshagent" | "publickey" | "kerberosgssapi" | "kerberosinteractive" => {
+                            println!(" └── Remmina profile SSH auth method: {auth:?}");
+                        }
+                        other => {
+                            println!(" └── Warning: Unrecognized SSH auth method '{other}', defaulting to 'password'");
+                        }
+                    }
+                } else if profile.auth.is_some() {
+                    println!(" └── Note: Auth method '{auth}' specified but protocol is not SSH, auth method will be ignored.");
+                } else {
+                    println!(" └── No auth method specified and protocol is not SSH, defaulting to 'password' (will be ignored).");
+                }
+
+                // Create new ProfileOptions and Profile
                 let new_profile_options = ProfileOptions {
                     host: profile.server.clone(),
                     user: profile.user.clone(),
                     algorithms: Some(serde_yaml_ng::Value::Mapping(Default::default())),
                     input: Some(serde_yaml_ng::Value::Mapping(Default::default())),
-                    auth: Some("password".to_string()),
+                    auth: profile.auth.clone(),
                     port,
                 };
                 let new_profile = Profile {

@@ -14,6 +14,7 @@ pub struct RemminaProfile {
     pub group: Option<String>,
     pub protocol: Option<String>,
     pub user: Option<String>,
+    pub auth: Option<String>,
 
     pub path: std::path::PathBuf,
 }

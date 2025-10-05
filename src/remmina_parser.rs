@@ -253,7 +253,7 @@ impl RemminaFiles {
             }
 
             // Now, after protocol is known, handle ssh_auth if protocol is SSH
-            if let (Some(ref proto), Some(ref rest)) = (protocol.as_ref(), ssh_auth_value.as_ref()) {
+            if let (Some(proto), Some(rest)) = (protocol.as_ref(), ssh_auth_value.as_ref()) {
                 if proto.as_str() == "SSH" {
                     let method = rest.parse::<u8>()
                         .map(crate::remmina_types::get_auth_method_from_int)
@@ -266,7 +266,7 @@ impl RemminaFiles {
             }
 
             // Prototype: Handle RDP auth (future implementation)
-            if let (Some(ref proto), Some(ref rest)) = (protocol.as_ref(), rdp_auth_value.as_ref()) {
+            if let (Some(proto), Some(rest)) = (protocol.as_ref(), rdp_auth_value.as_ref()) {
                 if proto.as_str() == "RDP" {
                     // TODO: Implement RDP auth method parsing
                     println!("(Prototype) Found RDP auth method '{}' in file {}", rest, path.display());
@@ -275,7 +275,7 @@ impl RemminaFiles {
             }
 
             // Prototype: Handle VNC auth (future implementation)
-            if let (Some(ref proto), Some(ref rest)) = (protocol.as_ref(), vnc_auth_value.as_ref()) {
+            if let (Some(proto), Some(rest)) = (protocol.as_ref(), vnc_auth_value.as_ref()) {
                 if proto.as_str() == "VNC" {
                     // TODO: Implement VNC auth method parsing
                     println!("(Prototype) Found VNC auth method '{}' in file {}", rest, path.display());
@@ -291,6 +291,7 @@ impl RemminaFiles {
                     group,
                     protocol,
                     user,
+                    auth: auth_method.as_ref().map(|m| m.as_str().to_string()),
                     path: path.clone(),
                 };
 
@@ -301,7 +302,7 @@ impl RemminaFiles {
                 println!("    • User:     {}", profile.user.as_deref().unwrap_or("<none>"));
                 println!("    • Group:    {}", profile.group.as_deref().unwrap_or("<none>"));
                 println!("    • Protocol: {}", profile.protocol.as_deref().unwrap_or("<none>"));
-                println!("    • Auth Method: {}", auth_method.as_ref().map(|m| format!("{:?}", m)).unwrap_or_else(|| "<none>".to_string()));
+                println!("    • Auth Method: {}", auth_method.as_ref().map(|m| format!("{m:?}")).unwrap_or_else(|| "<none>".to_string()));
                 println!("    • Path:     {}", profile.path.display());
 
                 profiles.push(profile);
