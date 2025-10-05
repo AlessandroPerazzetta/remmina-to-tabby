@@ -73,22 +73,30 @@ impl RemminaFiles {
             let mut found = false;
             if let Ok(file) = fs::File::open(path) {
                 let reader = BufReader::new(file);
-                for line in reader.lines().flatten() {
-                    if let Some(rest) = line.strip_prefix("protocol=") {
-                        let protocol = rest.trim().to_uppercase();
-                        match protocol.as_str() {
-                            "SSH" => {
-                                println!("{}: protocol={} ✅ [available]", path.display(), protocol);
-                            }
-                            "RDP" | "VNC" => {
-                                println!("{}: protocol={} ❌ [not implemented]", path.display(), protocol);
-                            }
-                            _ => {
-                                println!("{}: protocol not recognized ({}) ⚠️", path.display(), protocol);
+                for line_result in reader.lines() {
+                    match line_result {
+                        Ok(line) => {
+                            if let Some(rest) = line.strip_prefix("protocol=") {
+                                let protocol = rest.trim().to_uppercase();
+                                match protocol.as_str() {
+                                    "SSH" => {
+                                        println!("{}: protocol={} ✅ [available]", path.display(), protocol);
+                                    }
+                                    "RDP" | "VNC" => {
+                                        println!("{}: protocol={} ❌ [not implemented]", path.display(), protocol);
+                                    }
+                                    _ => {
+                                        println!("{}: protocol not recognized ({}) ⚠️", path.display(), protocol);
+                                    }
+                                }
+                                found = true;
+                                break;
                             }
                         }
-                        found = true;
-                        break;
+                        Err(e) => {
+                            eprintln!("Warning: Error reading line from {}: {}", path.display(), e);
+                            break; // Stop processing this file on error
+                        }
                     }
                 }
             }
@@ -115,13 +123,21 @@ impl RemminaFiles {
         for path in &self.files {
             if let Ok(file) = fs::File::open(path) {
                 let reader = BufReader::new(file);
-                for line in reader.lines().flatten() {
-                    if let Some(rest) = line.strip_prefix("protocol=") {
-                        let proto = rest.trim().to_uppercase();
-                        if protocols.iter().any(|p| p == &proto) {
-                            filtered_files.push(path.clone());
+                for line_result in reader.lines() {
+                    match line_result {
+                        Ok(line) => {
+                            if let Some(rest) = line.strip_prefix("protocol=") {
+                                let proto = rest.trim().to_uppercase();
+                                if protocols.iter().any(|p| p == &proto) {
+                                    filtered_files.push(path.clone());
+                                }
+                                break;
+                            }
                         }
-                        break;
+                        Err(e) => {
+                            eprintln!("Warning: Error reading line from {}: {}", path.display(), e);
+                            break; // Stop processing this file on error
+                        }
                     }
                 }
             }
@@ -147,35 +163,30 @@ impl RemminaFiles {
         for path in &self.files {
             if let Ok(file) = fs::File::open(path) {
                 let reader = BufReader::new(file);
-                for line in reader.lines().flatten() {
-                    if let Some(rest) = line.strip_prefix("protocol=") {
-                        let protocol = rest.trim().to_uppercase();
-                        if ALLOWED_PROTOCOLS_EXPORT.iter().any(|&p| p == protocol) {
-                            if execute {
-                                //  println!("🔹Exporting: {} (protocol={}) ✅", path.display(), protocol);
-                                println!(" ⬅️  Exporting: {} (protocol={}) ✅", path.display(), protocol);
-                                // println!(
-                                //     "🔹 Exporting Profile:\n  • Name:     {}\n  • Server:   {}\n  • Port:     {}\n  • User:     {}\n  • Group:    {}\n  • Protocol: {}\n  • Path:     {}\n",
-                                //     profile.name.as_deref().unwrap_or("<none>"),
-                                //     profile.server.as_deref().unwrap_or("<none>"),
-                                //     profile.port.as_deref().unwrap_or("<none>"),
-                                //     profile.user.as_deref().unwrap_or("<none>"),
-                                //     profile.group.as_deref().unwrap_or("<none>"),
-                                //     profile.protocol.as_deref().unwrap_or("<none>"),
-                                //     profile.path.display()
-                                // );
-                            } else {
-                                println!("Dry-run: {} (protocol={})", path.display(), protocol);
+                for line_result in reader.lines() {
+                    match line_result {
+                        Ok(line) => {
+                            if let Some(rest) = line.strip_prefix("protocol=") {
+                                let protocol = rest.trim().to_uppercase();
+                                if ALLOWED_PROTOCOLS_EXPORT.iter().any(|&p| p == protocol) {
+                                    if execute {
+                                        println!(" ⬅️  Exporting: {} (protocol={}) ✅", path.display(), protocol);
+                                    } else {
+                                        println!("Dry-run: {} (protocol={})", path.display(), protocol);
+                                    }
+                                }
+                                break;
                             }
                         }
-                        break;
+                        Err(e) => {
+                            eprintln!("Warning: Error reading line from {}: {}", path.display(), e);
+                            break; // Stop processing this file on error
+                        }
                     }
                 }
             }
         }
     }
-
-
 
     /// Extract profiles with name, server, group, protocol from files using ALLOWED_PROTOCOLS_EXPORT
     /// 
@@ -200,39 +211,46 @@ impl RemminaFiles {
 
             if let Ok(file) = fs::File::open(path) {
                 let reader = BufReader::new(file);
-                for line in reader.lines().flatten() {
-                    let line = line.trim();
-                    if let Some(rest) = line.strip_prefix("name=") {
-                        name = Some(rest.to_string());
-                    } else if let Some(rest) = line.strip_prefix("server=") {
-                        server = Some(rest.to_string());
-                    } else if let Some(rest) = line.strip_prefix("user=") {
-                        if !rest.is_empty() {
-                            user = Some(rest.to_string());
+                for line_result in reader.lines() {
+                    match line_result {
+                        Ok(line) => {
+                            let line = line.trim();
+                            if let Some(rest) = line.strip_prefix("name=") {
+                                name = Some(rest.to_string());
+                            } else if let Some(rest) = line.strip_prefix("server=") {
+                                server = Some(rest.to_string());
+                            } else if let Some(rest) = line.strip_prefix("user=") {
+                                if !rest.is_empty() {
+                                    user = Some(rest.to_string());
+                                }
+                            } else if let Some(rest) = line.strip_prefix("group=") {
+                                group = Some(rest.to_string());
+                            } else if let Some(rest) = line.strip_prefix("protocol=") {
+                                let proto = rest.to_uppercase();
+                                if ALLOWED_PROTOCOLS_EXPORT.iter().any(|&p| p == proto) {
+                                    protocol = Some(proto);
+                                }
+                            } else if let Some(rest) = line.strip_prefix("ssh_auth=") {
+                                let auth_str = match rest {
+                                    "0" => SshAuthMethod::Password.as_str(),
+                                    "1" => SshAuthMethod::SSHIdentityFile.as_str(),
+                                    "2" => SshAuthMethod::SSHAgent.as_str(),
+                                    "3" => SshAuthMethod::PublicKey.as_str(),
+                                    "4" => SshAuthMethod::KerberosGSSAPI.as_str(),
+                                    "5" => SshAuthMethod::KerberosInteractive.as_str(),
+                                    other => {
+                                        Box::leak(format!("unknown({other})").into_boxed_str())
+                                    },
+                                };
+                                auth = Some(auth_str.to_string());
+                            } else if let Some(rest) = line.strip_prefix("port=") {
+                                port = Some(rest.to_string());
+                            }
                         }
-                    } else if let Some(rest) = line.strip_prefix("group=") {
-                        group = Some(rest.to_string());
-                    } else if let Some(rest) = line.strip_prefix("protocol=") {
-                        let proto = rest.to_uppercase();
-                        if ALLOWED_PROTOCOLS_EXPORT.iter().any(|&p| p == proto) {
-                            protocol = Some(proto);
+                        Err(e) => {
+                            eprintln!("Warning: Error reading line from {}: {}", path.display(), e);
+                            break; // Stop processing this file on error
                         }
-                    } else if let Some(rest) = line.strip_prefix("ssh_auth=") {
-                        let auth_str = match rest {
-                            "0" => SshAuthMethod::Password.as_str(),
-                            "1" => SshAuthMethod::SSHIdentityFile.as_str(),
-                            "2" => SshAuthMethod::SSHAgent.as_str(),
-                            "3" => SshAuthMethod::PublicKey.as_str(),
-                            "4" => SshAuthMethod::KerberosGSSAPI.as_str(),
-                            "5" => SshAuthMethod::KerberosInteractive.as_str(),
-                            other => {
-                                // Allocate the string here so its lifetime is sufficient
-                                Box::leak(format!("unknown({other})").into_boxed_str())
-                            },
-                        };
-                        auth = Some(auth_str.to_string());
-                    } else if let Some(rest) = line.strip_prefix("port=") {
-                        port = Some(rest.to_string());
                     }
                 }
             }
