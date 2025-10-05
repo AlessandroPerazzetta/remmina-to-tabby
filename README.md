@@ -14,6 +14,10 @@
 
 An over engineered remmina profiles parser written in Rust because why not, it simply take one or many remmina profiles extract into a tabby parser that handle yaml config internally with serde-yaml-ng.
 
+## Requirements
+
+- **Rust** version **1.58** or higher
+
 > **Note:**  
 > This project uses `serde-yaml-ng` due to [serde-yaml deprecation](https://github.com/dtolnay/serde-yaml/releases/tag/0.9.34).
 
