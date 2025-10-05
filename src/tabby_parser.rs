@@ -198,7 +198,7 @@ impl TabbyConfig {
         if let Some(groups) = &mut self.groups {
             if let Some(existing_group) = groups.iter().find(|g| g.name == name) {
                 println!(" └── Group '{name}' already exists.");
-                return existing_group.id.clone();
+                existing_group.id.clone()
             } else {
                 let new_group = Group {
                     id: TabbyConfig::generate_group_id(),
@@ -206,7 +206,7 @@ impl TabbyConfig {
                 };
                 let group_id = new_group.id.clone();
                 groups.push(new_group);
-                return group_id;
+                group_id
             }
         } else {
             let new_group = Group {
@@ -215,7 +215,7 @@ impl TabbyConfig {
             };
             let group_id = new_group.id.clone();
             self.groups = Some(vec![new_group]);
-            return group_id;
+            group_id
         }
     }
     
