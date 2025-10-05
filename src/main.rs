@@ -44,6 +44,7 @@ struct Args {
 }
 
 fn main() {
+    clear_screen();
     show_ascii_art_header();
 
     let args = Args::parse();
@@ -236,6 +237,12 @@ fn default_tabby_dir() -> String {
     {
         String::from("./tabby")
     }
+}
+
+fn clear_screen() {
+    // Clear the terminal screen (works on most Unix terminals)
+    print!("\x1B[2J\x1B[H");
+    std::io::stdout().flush().unwrap();
 }
 
 fn confirm_continue(message: Option<&str>) {
