@@ -32,7 +32,7 @@ impl RemminaFiles {
                 path.is_file() && 
                 path.extension()
                     .and_then(|ext| ext.to_str())
-                    .map_or(false, |ext| ext == "remmina")
+                    == Some("remmina")
             })
             .collect();
         
