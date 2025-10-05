@@ -78,7 +78,7 @@ fn main() {
         }
     };
 
-    println!("Current number of profiles: {} and {} groups.", tabby_config.profiles.len(), tabby_config.groups.as_ref().map_or(0, |g| g.len()));
+    println!("Current number of Tabby profiles: {} and {} groups.", tabby_config.profiles.len(), tabby_config.groups.as_ref().map_or(0, |g| g.len()));
     if !args.yes { confirm_continue(Some("\nDo you want to continue with export from Remmina?")); }
     
 
@@ -89,7 +89,22 @@ fn main() {
         .collect();
 
     // Find and print .remmina files filtered by protocols
-    let remmina_files = RemminaFiles::find(remmina_dir).filter_by_protocols(&protocols);
+    // let remmina_files = RemminaFiles::find(remmina_dir).filter_by_protocols(&protocols);
+
+    // Find .remmina files with proper error handling
+    let remmina_files = match RemminaFiles::find(remmina_dir) {
+        Ok(files) => {
+            println!("\nFound {} .remmina files\n", files.files.len());
+            let filtered_files = files.filter_by_protocols(&protocols);
+            println!("After filtering, {} .remmina files match protocols: {:?}\n", filtered_files.files.len(), protocols);
+            filtered_files
+        }
+        Err(e) => {
+            eprintln!("\n🚫 Error reading Remmina directory '{}': {}\n", remmina_dir, e);
+            std::process::exit(1);
+        }
+    };
+
 
     if args.remmina_check {
         remmina_files.check_protocols();

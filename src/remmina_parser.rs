@@ -1,4 +1,6 @@
 use std::fs;
+use std::path::PathBuf;
+
 use std::io::{BufRead, BufReader};
 // use crate::remmina_types::{RemminaProfile,RemminaFiles};
 use crate::remmina_types::{RemminaFiles, RemminaProfile, SshAuthMethod};
@@ -12,28 +14,45 @@ impl RemminaFiles {
     /// # Arguments
     /// 
     /// * `remmina_dir` - A string slice that holds the path to the Remmina directory
+    /// 
     /// # Returns
     /// 
-    /// * `RemminaFiles` - A struct containing a vector of PathBufs to the found .remmina files
-    pub fn find(remmina_dir: &str) -> Self {
-        let mut files = Vec::new();
-        let entries = match fs::read_dir(remmina_dir) {
-            Ok(e) => e,
-            Err(_) => return RemminaFiles { files },
-        };
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_file() {
-                    if let Some(ext) = path.extension() {
-                        if ext == "remmina" {
-                            files.push(path);
-                        }
-                    }
-                }
-            }
-        }
-        RemminaFiles { files }
+    /// * `Result<Self, std::io::Error>` - A RemminaFiles struct or an IO error
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an error if the directory cannot be read or accessed
+    pub fn find(remmina_dir: &str) -> Result<Self, std::io::Error> {
+        let entries = fs::read_dir(remmina_dir)?;
+        
+        let files: Vec<PathBuf> = entries
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.is_file() && 
+                path.extension()
+                    .and_then(|ext| ext.to_str())
+                    .map_or(false, |ext| ext == "remmina")
+            })
+            .collect();
+        
+        Ok(RemminaFiles { files })
+    }
+
+    /// Find all .remmina files in the given directory (fallback version)
+    /// Returns empty collection on any error for backward compatibility
+    /// 
+    /// # Arguments
+    /// 
+    /// * `remmina_dir` - A string slice that holds the path to the Remmina directory
+    /// 
+    /// # Returns
+    /// 
+    /// * `Self` - A RemminaFiles struct, empty if directory cannot be read
+    pub fn find_safe(remmina_dir: &str) -> Self {
+        Self::find(remmina_dir).unwrap_or_else(|_| RemminaFiles { 
+            files: Vec::new() 
+        })
     }
 
     /// Show all found .remmina files
