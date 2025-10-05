@@ -114,15 +114,12 @@ impl TabbyConfig {
     pub fn load_from_dir(dir: &str) -> Result<Self, String> {
         let config_path = Path::new(dir).join("config.yaml");
         if !config_path.exists() {
-            return Err(format!( 
-                "Error: config.yaml not found in directory '{}'",
-                dir
-            ));
+            return Err(format!("Error: config.yaml not found in directory '{dir}'"));
         }
         let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Error reading config.yaml: {}", e))?;
+            .map_err(|e| format!("Error reading config.yaml: {e}"))?;
         let config: TabbyConfig = serde_yaml_ng::from_str(&content)
-            .map_err(|e| format!("Error parsing config.yaml: {}", e))?;
+            .map_err(|e| format!("Error parsing config.yaml: {e}"))?;
         Ok(config)
     }
 
@@ -146,25 +143,9 @@ impl TabbyConfig {
         self.profiles.push(profile);
     }
 
-    /// Generates a profile ID in the format: [protocol]:[identifier]:[name]:[uuid]
-    ///
-    /// # Arguments
-    /// * `protocol` - The protocol type (e.g., "ssh").
-    /// * `identifier` - A custom identifier (e.g., "custom").
-    /// * `name` - The profile name.
-    ///
-    /// # Returns
-    /// * `String` - The generated profile ID.
-    // pub fn generate_profile_id(protocol: &str, identifier: &str, name: &str) -> String {
-    //     let uuid = Uuid::new_v4();
-    //     format!("{protocol}:{identifier}:{name}:{}", uuid)
-    // }
-    
-
     /// Generates a unique profile ID in the format: [protocol]:[identifier]:[name]:[uuid]
-    /// Notes:
-    ///     generate_profile_uuid is an instance method to ensure uniqueness within the TabbyConfig
-    ///     as an instance of TabbyConfig to check if in config a profile with same id exists, else regenerate new uuid
+    /// Notes: generate_profile_uuid is an instance method to ensure uniqueness within the TabbyConfig
+    /// as an instance of TabbyConfig to check if in config a profile with same id exists, else regenerate new uuid
     /// 
     /// # Arguments
     /// * `protocol` - The protocol type (e.g., "ssh").
@@ -177,7 +158,7 @@ impl TabbyConfig {
     pub fn generate_profile_uuid(&self, protocol: &str, identifier: &str, name: &str) -> String {
         loop {
             let uuid = Uuid::new_v4();
-            let profile_id = format!("{protocol}:{identifier}:{name}:{}", uuid);
+            let profile_id = format!("{protocol}:{identifier}:{name}:{uuid}");
             if !self.profiles.iter().any(|p| p.id.as_deref() == Some(&profile_id)) {
                 return profile_id;
             }
@@ -216,7 +197,7 @@ impl TabbyConfig {
         // Check if group with the same name already exists
         if let Some(groups) = &mut self.groups {
             if let Some(existing_group) = groups.iter().find(|g| g.name == name) {
-                println!(" └── Group '{}' already exists.", name);
+                println!(" └── Group '{name}' already exists.");
                 return existing_group.id.clone();
             } else {
                 let new_group = Group {
@@ -258,7 +239,7 @@ impl TabbyConfig {
                     "custom",
                     &profile.name.clone().unwrap_or_default(),
                 );
-                println!(" └── Generated profile UUID: {}", profile_id);
+                println!(" └── Generated profile UUID: {profile_id}");
 
                 let group_id = self.add_group(profile.group.as_deref().unwrap_or("Default Group"));
                 // println!(" └── Using group id: {:?} - name: {:?}", group_id, profile.group);
@@ -311,9 +292,9 @@ impl TabbyConfig {
     /// * `Result<(), String>` - Ok if successful, Err with error message if failed.
     pub fn save_to_path(&self, path: &str) -> Result<(), String> {
         let yaml = serde_yaml_ng::to_string(self)
-            .map_err(|e| format!("Error serializing config to YAML: {}", e))?;
+            .map_err(|e| format!("Error serializing config to YAML: {e}"))?;
         std::fs::write(path, yaml)
-            .map_err(|e| format!("Error writing YAML to file: {}", e))?;
+            .map_err(|e| format!("Error writing YAML to file: {e}"))?;
         Ok(())
     }
 

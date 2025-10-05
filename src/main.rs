@@ -52,28 +52,28 @@ fn main() {
     let tabby_dir = &args.tabby_dir;
     let protocol_arg = &args.protocol;
     
-    println!("Remmina dir: {}", remmina_dir);
-    println!("Tabby dir: {}", tabby_dir);
-    println!("Protocol filter: {}", protocol_arg);
+    println!("Remmina dir: {remmina_dir}");
+    println!("Tabby dir: {tabby_dir}");
+    println!("Protocol filter: {protocol_arg}");
 
     if !Path::new(remmina_dir).is_dir() {
-        eprintln!("\n 🚫 Error: Remmina directory '{}' does not exist or is not a directory.\n", remmina_dir);
+        eprintln!("\n 🚫 Error: Remmina directory '{remmina_dir}' does not exist or is not a directory.\n");
         std::process::exit(1);
     }
 
     if !Path::new(tabby_dir).is_dir() {
-        eprintln!("\n 🚫 Error: Tabby directory '{}' does not exist or is not a directory.\n", tabby_dir);
+        eprintln!("\n 🚫 Error: Tabby directory '{tabby_dir}' does not exist or is not a directory.\n");
         std::process::exit(1);
     }
 
     let mut tabby_config = match TabbyConfig::load_from_dir(tabby_dir) {
         Ok(config) => {
-            println!("\nLoaded Tabby config from {}\n", tabby_dir);
+            println!("\nLoaded Tabby config from {tabby_dir}\n");
 
             config
         }
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             std::process::exit(1);
         }
     };
@@ -100,7 +100,7 @@ fn main() {
             filtered_files
         }
         Err(e) => {
-            eprintln!("\n🚫 Error reading Remmina directory '{}': {}\n", remmina_dir, e);
+            eprintln!("\n🚫 Error reading Remmina directory '{remmina_dir}': {e}\n");
             std::process::exit(1);
         }
     };
@@ -123,16 +123,11 @@ fn main() {
     // }
 
     let remmina_profiles: Vec<RemminaProfile>  = remmina_files.export_profiles();
-    if remmina_profiles.len() == 0 {
-        println!("\n🟡 No Remmina profiles found with protocol(s): {:?}\n", protocols);
+    if remmina_profiles.is_empty() {
+        println!("\n🟡 No Remmina profiles found with protocol(s): {protocols:?}\n");
         return;
     }
-    if remmina_profiles.len() > 0 {
-        println!("\n✅ Exported {} profiles from Remmina files.\n", remmina_profiles.len());
-    } else {
-        println!("\n🛑 No Remmina profiles exorted");
-        return;
-    }
+    println!("\n✅ Exported {} profiles from Remmina files.\n", remmina_profiles.len());
     
     
     // for profile in &remmina_profiles {
@@ -156,10 +151,10 @@ fn main() {
         if config_path.exists() {
             match fs::copy(&config_path, &backup_path) {
                 Ok(_) => println!("\nBackup of {} created: {}\n", config_path.display(), backup_path.display()),
-                Err(e) => eprintln!("Failed to create backup: {}", e),
+                Err(e) => eprintln!("Failed to create backup: {e}"),
             }
         } else {
-            println!("❗❗❗ No config.yaml found to backup in {}", tabby_dir);
+            println!("❗❗❗ No config.yaml found to backup in {tabby_dir}");
         }
     } else {
         println!("Dry-run would create backup of {} to {}", config_path.display(), backup_path.display());
@@ -171,14 +166,14 @@ fn main() {
         println!("\n🟡 No new profiles were imported into Tabby config (all already exist).\n");
         return;
     } else {
-        println!("\n✅ Imported {} new profiles into Tabby config.\n", imported_count);
+        println!("\n✅ Imported {imported_count} new profiles into Tabby config.\n");
     }
 
     if args.execute {
         // Save updated Tabby config back to config.yaml
         tabby_config.save_to_path(&config_path.to_string_lossy())
             .unwrap_or_else(|err| {
-                eprintln!("Failed to save Tabby config: {}", err);
+                eprintln!("Failed to save Tabby config: {err}");
                 std::process::exit(1);
             });
         println!("Tabby config saved to {}", config_path.display());
@@ -187,21 +182,21 @@ fn main() {
     }
 
 
-    if let Some(profile) = tabby_config.get_profile("host011") {
-        println!("Found profile: {:#?}", profile);
-        let group_id = profile.group.as_deref().unwrap_or("No group");
-        if let Some(groups) = &tabby_config.groups {
-            if let Some(group) = groups.iter().find(|g| g.id == group_id) {
-                println!("Profile belongs to group: {}", group.name);  
-            } else {
-                println!("Group with id '{}' not found", group_id);
-            }
-        } else {
-            println!("No groups defined in the config");
-        }
-    } else {
-        println!("Profile {} not found", "host011");
-    }
+    // if let Some(profile) = tabby_config.get_profile("host011") {
+    //     println!("Found profile: {:#?}", profile);
+    //     let group_id = profile.group.as_deref().unwrap_or("No group");
+    //     if let Some(groups) = &tabby_config.groups {
+    //         if let Some(group) = groups.iter().find(|g| g.id == group_id) {
+    //             println!("Profile belongs to group: {}", group.name);  
+    //         } else {
+    //             println!("Group with id '{}' not found", group_id);
+    //         }
+    //     } else {
+    //         println!("No groups defined in the config");
+    //     }
+    // } else {
+    //     println!("Profile {} not found", "host011");
+    // }
 
 
 
@@ -245,7 +240,7 @@ fn default_tabby_dir() -> String {
 
 fn confirm_continue(message: Option<&str>) {
     if let Some(msg) = message {
-        println!("{}", msg);
+        println!("{msg}");
     }
     print!("⚠️  Press [Enter] to continue or 'q' then [Enter] to quit: ");
     io::stdout().flush().unwrap();

@@ -227,7 +227,7 @@ impl RemminaFiles {
                             "5" => SshAuthMethod::KerberosInteractive.as_str(),
                             other => {
                                 // Allocate the string here so its lifetime is sufficient
-                                Box::leak(format!("unknown({})", other).into_boxed_str())
+                                Box::leak(format!("unknown({other})").into_boxed_str())
                             },
                         };
                         auth = Some(auth_str.to_string());

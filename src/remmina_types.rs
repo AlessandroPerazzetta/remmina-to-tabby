@@ -1,4 +1,5 @@
-use std::{path::PathBuf, u8};
+// use std::{path::PathBuf, u8};
+use std::path::PathBuf;
 
 /// Struct to hold a list of .remmina files
 pub struct RemminaFiles {
