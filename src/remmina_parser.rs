@@ -207,8 +207,12 @@ impl RemminaFiles {
             let mut group = None;
             let mut protocol = None;
             let mut user = None;
-            let mut auth = None;
+            let mut auth_method = None;
+            let mut ssh_auth_value = None;
+            let mut rdp_auth_value = None; // Prototype for RDP auth
+            let mut vnc_auth_value = None; // Prototype for VNC auth
 
+            // First pass: collect all key-value pairs
             if let Ok(file) = fs::File::open(path) {
                 let reader = BufReader::new(file);
                 for line_result in reader.lines() {
@@ -231,27 +235,51 @@ impl RemminaFiles {
                                     protocol = Some(proto);
                                 }
                             } else if let Some(rest) = line.strip_prefix("ssh_auth=") {
-                                let auth_str = match rest {
-                                    "0" => SshAuthMethod::Password.as_str(),
-                                    "1" => SshAuthMethod::SSHIdentityFile.as_str(),
-                                    "2" => SshAuthMethod::SSHAgent.as_str(),
-                                    "3" => SshAuthMethod::PublicKey.as_str(),
-                                    "4" => SshAuthMethod::KerberosGSSAPI.as_str(),
-                                    "5" => SshAuthMethod::KerberosInteractive.as_str(),
-                                    other => {
-                                        Box::leak(format!("unknown({other})").into_boxed_str())
-                                    },
-                                };
-                                auth = Some(auth_str.to_string());
+                                ssh_auth_value = Some(rest.to_string());
+                            } else if let Some(rest) = line.strip_prefix("rdp_auth=") {
+                                rdp_auth_value = Some(rest.to_string()); // Store for future use
+                            } else if let Some(rest) = line.strip_prefix("vnc_auth=") {
+                                vnc_auth_value = Some(rest.to_string()); // Store for future use
                             } else if let Some(rest) = line.strip_prefix("port=") {
                                 port = Some(rest.to_string());
                             }
                         }
                         Err(e) => {
                             eprintln!("Warning: Error reading line from {}: {}", path.display(), e);
-                            break; // Stop processing this file on error
+                            break;
                         }
                     }
+                }
+            }
+
+            // Now, after protocol is known, handle ssh_auth if protocol is SSH
+            if let (Some(ref proto), Some(ref rest)) = (protocol.as_ref(), ssh_auth_value.as_ref()) {
+                if proto.as_str() == "SSH" {
+                    let method = rest.parse::<u8>()
+                        .map(crate::remmina_types::get_auth_method_from_int)
+                        .unwrap_or_else(|_| SshAuthMethod::from_str(rest));
+                    if let SshAuthMethod::Unknown(ref s) = method {
+                        eprintln!("Warning: Unknown SSH auth method '{}' in file {}", s, path.display());
+                    }
+                    auth_method = Some(method);
+                }
+            }
+
+            // Prototype: Handle RDP auth (future implementation)
+            if let (Some(ref proto), Some(ref rest)) = (protocol.as_ref(), rdp_auth_value.as_ref()) {
+                if proto.as_str() == "RDP" {
+                    // TODO: Implement RDP auth method parsing
+                    println!("(Prototype) Found RDP auth method '{}' in file {}", rest, path.display());
+                    // Example: auth_method = Some(RdpAuthMethod::from_str(rest));
+                }
+            }
+
+            // Prototype: Handle VNC auth (future implementation)
+            if let (Some(ref proto), Some(ref rest)) = (protocol.as_ref(), vnc_auth_value.as_ref()) {
+                if proto.as_str() == "VNC" {
+                    // TODO: Implement VNC auth method parsing
+                    println!("(Prototype) Found VNC auth method '{}' in file {}", rest, path.display());
+                    // Example: auth_method = Some(VncAuthMethod::from_str(rest));
                 }
             }
 
@@ -273,7 +301,7 @@ impl RemminaFiles {
                 println!("    • User:     {}", profile.user.as_deref().unwrap_or("<none>"));
                 println!("    • Group:    {}", profile.group.as_deref().unwrap_or("<none>"));
                 println!("    • Protocol: {}", profile.protocol.as_deref().unwrap_or("<none>"));
-                println!("    • Auth Method: {}", auth.as_deref().unwrap_or("<none>"));
+                println!("    • Auth Method: {}", auth_method.as_ref().map(|m| format!("{:?}", m)).unwrap_or_else(|| "<none>".to_string()));
                 println!("    • Path:     {}", profile.path.display());
 
                 profiles.push(profile);
