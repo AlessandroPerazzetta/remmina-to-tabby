@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use std::io::{BufRead, BufReader};
 // use crate::remmina_types::{RemminaProfile,RemminaFiles};
-use crate::remmina_types::{RemminaFiles, RemminaProfile, SshAuthMethod};
+use crate::remmina_types::{RemminaFiles, RemminaProfile, SshAuthMethod, get_auth_method_as_int};
 use crate::protocols_types::ALLOWED_PROTOCOLS_EXPORT;
 
 #[allow(dead_code)]
@@ -302,7 +302,14 @@ impl RemminaFiles {
                 println!("    • User:     {}", profile.user.as_deref().unwrap_or("<none>"));
                 println!("    • Group:    {}", profile.group.as_deref().unwrap_or("<none>"));
                 println!("    • Protocol: {}", profile.protocol.as_deref().unwrap_or("<none>"));
-                println!("    • Auth Method: {}", auth_method.as_ref().map(|m| format!("{m:?}")).unwrap_or_else(|| "<none>".to_string()));
+                println!(
+                    "    • Auth Method: {}",
+                    match (auth_method.as_ref(), profile.protocol.as_deref()) {
+                        (Some(m), Some("SSH")) => format!("{:?} [{}]", m, get_auth_method_as_int(m)),
+                        (Some(m), _) => format!("{m:?}"),
+                        (None, _) => "<none>".to_string(),
+                    }
+                );
                 println!("    • Path:     {}", profile.path.display());
 
                 profiles.push(profile);
